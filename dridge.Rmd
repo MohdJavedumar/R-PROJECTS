@@ -1,0 +1,255 @@
+---
+title: "Wooldridge Data Analysis"
+author: "Mohd Javed"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,cache = TRUE,warning = FALSE,message = FALSE,dpi = 180,fig.width = 8,fig.height = 5)
+```
+
+
+
+### Polynomails and interactions
+#### This question uses the Wooldridge data set wage1. I have loaded it below to a data frame called wage1. The purpose of this question is to get used to interpreting coefficients with different functional form assumptions.
+
+```{r}
+library(magrittr)
+wage1 <- wooldridge::wage1 %>% 
+  filter(complete.cases(.))
+```
+
+Consider the generic regression:
+y=β0+β1x1+β2x21+β3x2+β4x3+β5(x2⋅x3)+u
+Here, the variable x1 is entered into the regression twice – once as a ‘main’ effect and once as a squared term. Consider the partial effect of increasing x1 by 1 unit.
+∂y∂x1=β1+β2x1
+This says that the marginal impact on y from a one unit increase in x1 is not a constant, but a function. The impact depends on the value of x1. For example, suppose that β1 is positive and β2 is negative. This means that the relationship between y and x1 exhibits decreasing marginal returns. That is, when x1 increases from 0 to 1, the ∂y∂x1 is higher than going from 2 to 3 and so on. If we graph this, it would look like an inverted ‘U’. For example, it might look like:
+```{r}
+library(dplyr)
+fig.data <- data.frame(x = 1:10) %>% 
+  mutate(y = 100 + 20 * x - 1.5*x^2)
+library(ggplot2)
+ggplot(fig.data, aes(y = y, x = x)) + 
+  geom_line() + 
+  labs(title = "Typical diminishing marginal returns profile")
+```
+
+
+We can find the the point at which x_1 turns from positive to negative (the inflection point) but setting ∂y∂x1=0 and solving for x1. This yields
+x∗1=∣∣∣β12⋅β2∣∣∣.
+
+The variables x2 and x3 also appear twice; each as an main effect and then as an interaction. Consider the partial effect of x2 on y
+∂y∂x2=β3+β5x2
+Again, this says that the impact of x2 on y is not a constant. It allows the impact to depend on the value of x3. The treatment of x3 is symmetric. We most often use these types of interactions when one term is a dummy variable. Suppose x3 only takes on two values, 1 and 0. Then
+∂y∂x2=β3+β5 when x3=1 and ∂y∂x2=β3 when x3=0
+Since dummy variables denote groups (ie, 2 groups), this allows each group to have its own intercept (β4) and slope. Graphically, it looks like:
+```{r}
+
+wage1<-as.data.frame(wage1)
+ggplot(wage1, aes(y = lwage, x = educ, color = factor(west))) + 
+  geom_smooth(method = 'lm', se = F)
+```
+
+## `geom_smooth()` using formula 'y ~ x'
+
+
+Where each line is a regression of log wages on education, with an interaction for living in the west. The return education for workers in the western United States in this data is higher than the return for those in the rest of the country.
+
+In R, we can create variables “on the fly” to use in regressions. We use this mostly to create interaction terms and low order polynomial terms. Consider the following code that would estimate the following equation
+y=β0+β1x1+β2x21+β3x2+β4x3+β5(x2⋅x3)+u
+In the code below, each regression is exactly the same, just different ways of expressing it:
+```{r}
+
+```
+
+The term I() is an “insulator function”. It tells R to evaluate the expression inside first, then run the regression. The notation for x_2*x_3 says to include main effects for each variable, plus and interaction. The notation x_2:x_3 just includes an interaction. Finally, poly() constructs low order polynomials. The raw=T option is important.
+
+```{r}
+
+# fit models
+models <- list(
+ lm(lwage ~ educ + exper + I(exper^2) + nonwhite + female , data = wage1),
+ lm(lwage ~ educ*female + exper + I(exper^2) + nonwhite , data = wage1)
+)
+stargazer::stargazer(models,type="text")
+```
+
+
+
+
+
+
+
+# Teaching evaluations
+Many college courses conclude by giving students the opportunity to evaluate the course and the instructor anonymously. However, the use of these student evaluations as an indicator of course quality and teaching effectiveness is often criticized because these measures may reflect the influence of non-teaching related characteristics, such as the physical appearance of the instructor. The article titled, “Beauty in the classroom: instructors’ pulchritude and putative pedagogical productivity” (Hamermesh and Parker, 2005) found that instructors who are viewed to be better looking receive higher instructional ratings.
+
+
+```{r}
+library(AER)
+data(TeachingRatings)  # load ratings data
+df <- TeachingRatings   # re-name as df for convenience
+str(df)
+```
+
+
+```{r}
+class(TeachingRatings$credits)
+
+table(TeachingRatings$credits)
+prop=27/(436+27)
+prop
+
+```
+
+
+```{r}
+class(TeachingRatings$allstudents)
+max(TeachingRatings$allstudents)
+```
+
+
+```{r}
+
+```
+
+#### Credit is a categorical variable with two levels.
+
+
+You can see the variable definitions by typing “?TeachingRatings” in the console. Suppose we are interested in estimating a causal effect of beauty on eval. 
+That is,evali=β0+β1beautyi+ηi
+Using the strategy discussed in class and in Chapter 7.6, construct a regression table evaluating the causal effect of beauty on teaching evaluations. Your regression table should consider several specifications, starting with the bivariate regression above and then adding more controls, possibly in groups. For each specification, state why you think its important to include for the controls you add. Your answer should relate to the CIA assumption. Interpret your results, do you think that beauty has a causal impact on evaluations. If yes, defend your answer. If not, state why not.
+#### Yes Beauty has causal influence on evaluation. P value is less than 0.05 which implies there is significant direct effect of beauty on evaluation. The Beta coefficient of beauty is positive and significant.Increase in beauty will cause significant increase in evaluation.
+
+```{r}
+mod_eval<-lm(eval~beauty,data=df)
+stargazer::stargazer(mod_eval,type="text")
+
+```
+
+#### A regression of eval on beauty, gender, minority, credits, division, tenure, native. Consider my data: I am male, non-minority, native English speaker, teaching multiple credit courses in an upper-division and I have tenure. 
+
+#### 2.3=0.165*x-0.056*tenureyes+4.115(2.3-4.115)/0.165 = 11 
+
+
+#### Beauty rating will be 11
+
+```{r}
+mod_eval2<-lm(eval~beauty+gender+minority+credits+division+tenure+native,data=df)
+stargazer::stargazer(mod_eval2,type="text")
+```
+
+
+
+#### We can reject that the return to beauty for women, in terms of evaluations, is not zero because p-value for interaction term (beauty|gender) is less than 0.05, we have to reject the null hypothesis and accept alternative hypothesis.
+
+
+
+```{r}
+mod_eval3<-lm(eval~beauty+gender+(beauty*gender)+minority+credits+division+tenure+native,data=df)
+stargazer::stargazer(mod_eval3,type="text")
+```
+#### Using the same controls, the return to beauty depends on the level of beauty.
+
+
+```{r}
+mod_eval3<-lm(eval~beauty+gender+(beauty*gender)+minority+credits+division+tenure+native,data=df)
+stargazer::stargazer(mod_eval3,type="text")
+```
+
+
+#### After adding interaction the beauty standarddised beta coeffcient has increased significantly. Hence there is significant influnce on females beauty on evaluation.
+```{r}
+plot(margins(mod_eval3))
+```
+
+
+
+#### The relationship we examine is:
+#### log(birth weight)i=β0+β1smokingi+ηi
+
+#### where smokingi will be measured by average cigarettes per day. The term ηi captures all of the other things that determine birth weight aside from smoking.
+
+### Baseline analysis.
+
+
+# loading birth weight data from the package wooldridge
+```{r}
+bw <- wooldridge::bwght
+
+```
+
+
+
+
+```{r}
+mod_bwt<-lm(bwght~cigs,data=bw)
+bw$cigsq<-bw$cigs^2
+mod_bwt1<-lm(bwght~cigs+cigsq,data=bw)
+mod_bwt2<-lm(bwght~cigs+male,data=bw)
+
+stargazer::stargazer(mod_bwt,mod_bwt1,mod_bwt2,type = "text")
+margins(mod_bwt)
+```
+
+
+```{r}
+par(mfrow=c(3,1))
+plot(margins(mod_bwt))
+plot(margins(mod_bwt1))
+plot(margins(mod_bwt2))
+
+```
+
+## Results and discussion
+
+#### When an important explanatory variable is left out of a regression model, the coefficient of one or more explanatory variables in the model may be biassed as a result. This is known as omitted variable bias. There are no data at all for the variable.It is unclear how the explanatory variable will affect the response variable.Age could have significant impact on smoking. 
+
+
+
+#### A model is therefore a collection of probability distributions. The model is incorrectly stated if the distribution that generates the data does not fall under the set.A model is misspecified when at least one of our assumptions is incorrect since we construct models by making assumptions. Yes we should have linear reletioship between dependent and independent variabe. If not then linearity assumption will be viloleted.
+
+
+####  If mothers in the survey did not accurately report their smoking behavior, then our model will not be much reliable means garbage in and garbage out.
+
+### Simultaneous causality.
+#### We have assumed that variations in independent variable smoking are the cause of variations in dependent variable bwgt. When the opposite is also true, we say that smoking and bwgt are causally related simultaneously. Due to this reverse causation, there is a link between smoking and the error in the relevant population regression, which causes the coefficient on smoking to be biasedly estimated.
+
+### External validity.
+#### The ability to use a scientific study's findings outside of its original context is known as external validity. In other words, it refers to how broadly the findings of a study can be applied to and across different contexts, subjects, stimuli, and contexts.
+
+
+
+
+
+
+
+
+
+
+
+
+# 2nd data set
+```{r}
+bw2 <- wooldridge::bwght2
+
+
+mod_lbwt<-lm(lbwght~.,data=bw)
+
+stargazer::stargazer(mod_lbwt,type="text")
+
+```
+
+
+
+
+
+
+
+
+#### No results are similer to previous dataset.
+
+```{r}
+margins(mod_lbwt)
+```

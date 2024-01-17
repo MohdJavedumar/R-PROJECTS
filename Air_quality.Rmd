@@ -1,0 +1,127 @@
+---
+title: ' AIR Quality (pm25_data) Analysis'
+author: 'Mohd Javed'
+date: '2023-04-29'
+output: word_document
+---
+```{r}
+#library(tidyverse)
+library(readr)
+dat <- read_csv("https://github.com/rdpeng/stat322E_public/raw/main/data/pm25_data.csv.gz")
+```
+
+
+```{r}
+skimr::skim(dat)
+```
+
+#### There is no missing Values in dataset.
+
+
+
+
+```{r}
+hist(dat$value,main="Distribution of Value")
+```
+
+### Good resemblance of normal curve
+
+
+
+
+### Simple Linear Regrsssion model
+
+
+
+
+```{r}
+##Removing Id Variable
+dat$id=NULL
+
+
+## to visualize linear model output
+library(stargazer)
+
+
+
+#training linear_model
+mod<-lm(value~.,data=dat)
+stargazer(mod,type="text")
+
+
+
+
+#prediction
+predictions<-predict(mod,dat)
+
+
+
+
+# RMSE
+sqrt(mean((dat$value - predictions)^2))
+
+
+```
+
+
+
+
+## random forest Model
+
+```{r}
+library(caret)
+library(randomForest)
+set.seed(1)
+mod2 <- train(value ~., 
+                 data = dat, 
+                 method = "rf", 
+                 ntree = 50,
+                 trControl = trainControl(method = "CV", number = 10),
+                 tuneLength = 5)
+print(mod2)
+
+
+#number of trees that produce lowest test MSE
+which.min(mod2$mse)
+
+
+
+#RMSE
+
+sqrt(model$mse[which.min(mod2$mse)]) 
+```
+
+
+
+### knn model
+
+
+```{r}
+set.seed(123)
+libra
+model_knn <- train(value~., data=dat,
+                method="knn",
+                trControl = trainControl("cv", number = 10), preProcess = c("center","scale"), tuneLength = 10)
+model_knn
+
+
+
+plot(model_knn)
+
+
+#parameter k that minimize the RMSE
+model_knn$bestTune
+
+
+
+# Make predictions on the test data
+predictions <- model_knn%>% predict(dat)
+head(predictions)
+# Compute the prediction error RMSE
+RMSE(predictions, dat$value)
+```
+
+
+
+
+
