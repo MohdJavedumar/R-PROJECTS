@@ -1,0 +1,324 @@
+---
+title: "Modern Computational Statistical Methods"
+author: "mahendarrr"
+date: "2023-04-25"
+output: pdf_document
+---
+
+
+
+
+The optimization problem  min_w∈R^d f(w) , by expressing the minimizer w in terms of the data matrix of x and the vector y.
+
+The optimization problem min_w∈R^d.f(w) can be solved using the gradient descent algorithm, which iteratively updates the parameter vector w as follows:
+
+w <- w - α∇f(w),
+
+where α is the step size (also known as the learning rate), and ∇f(w) is the gradient of f(w) with respect to w. The gradient of f(w) can be computed as follows:
+
+∇f(w) = ∇g(w) + ∇h(w),
+
+where ∇g(w) and ∇h(w) are the gradients of g(w) and h(w) with respect to w, respectively. The gradient of g(w) is given by:
+
+∇g(w) = X^T (Xw - y),
+
+where Xw is the matrix product of X and w, and y is the vector of target values. The gradient of h(w) is given by:
+
+∇h(w) = γw.
+
+Putting everything together, the gradient descent algorithm for minimizing f(w) can be written as:
+
+repeat {
+w <- w - α(X^T (Xw - y) + γw)
+}
+
+The solution w that minimizes f(w) is the value that is obtained after convergence of this algorithm. Note that the solution depends on the choice of the step size α, which needs to be chosen carefully to ensure convergence.
+
+
+### We have considered breast cancer prediction where the label, or outcome variable diagnosis has been coded as “M” in case of malignant lumps and “B” in case of benign lumps. A popular dataset in this context is called the Wisconsin Breast Cancer Dataset and is based on clinical data released in the early 1990’s. The feature vector x is composed of continuous variables such as radius mean, texture mean, etc., each potentially affecting the probability of malignancy. We use the 80-20 splitting strategy where we split it randomly between training data and testing data. We want to build a prediction model to predict malignant lumps based on main important features.
+
+### logistic model 
+
+The logistic regression model for predicting malignant lumps based on the important features can be written as:
+
+logit(P(diagnosis = "M"|x)) = β0 + β1x1 + β2x2 + ... + βp*xp
+
+where P(diagnosis = "M"|x) is the probability of the diagnosis being malignant given the feature vector x, β0 is the intercept, β1 to βp are the coefficients of the corresponding features x1 to xp, and logit() is the natural logarithm of the odds ratio. The model assumes a linear relationship between the log-odds of the probability of malignancy and the features. 
+
+### Load the  file Breast.Rdata 
+```{r}
+library(magrittr)
+library(dplyr)
+Breast = load("C:/Users/Nexgen/Downloads/Breast.gz")
+
+
+```
+
+
+```{r}
+
+
+table(train$diagnosis)
+table(test$diagnosis)
+
+
+```
+
+### logistic model (previously defined) using all attributes 
+
+```{r}
+# Remove rows with missing values from train and test datasets
+train <- na.omit(train)
+test <- na.omit(test)
+
+# Fit the logistic model using all attributes on the training data
+logistic_model <- glm(diagnosis ~ ., data = train, family = binomial)
+
+# Make predictions on the test data using the fitted model
+predictions <- predict(logistic_model, newdata = test, type = "response")
+
+# Convert predictions to binary output
+binary_predictions <- ifelse(predictions > 0.5, "Benign", "Malignant")
+
+# Compute the confusion matrix and accuracy
+confusion_matrix <- table(test$diagnosis, binary_predictions)
+accuracy <- sum(diag(confusion_matrix))/sum(confusion_matrix)
+
+
+
+
+```
+
+
+
+### Generating a random sample with 500 observations from the  Bernoulli distribution function when θ = 0.45
+
+```{r}
+
+set.seed(123) # for reproducibility
+n <- 500 # sample size
+theta <- 0.45 # probability parameter
+sample <- rbinom(n, 1, theta)
+sample
+```
+#### function when θ = 0.45.
+
+### Computing  bootstrap estimates of θ using the MLE and MOM estimates. Let’s assume 1000 replications
+
+```{r}
+set.seed(123) # for reproducibility
+n <- 500 # sample size
+theta <- 0.45 # probability parameter
+B <- 1000 # number of bootstrap replications
+
+# original sample
+x <- rbinom(n, 1, theta)
+
+# function to compute MLE and MOM estimates
+theta_mle <- function(x) min(c(mean(x), 0.5))
+theta_mom <- function(x) mean(x)
+
+# bootstrap estimates using MLE and MOM
+theta_mle_boot <- replicate(B, theta_mle(sample(x, n, replace = TRUE)))
+theta_mom_boot <- replicate(B, theta_mom(sample(x, n, replace = TRUE)))
+
+# mean of bootstrap estimates
+theta_mle_boot_mean <- mean(theta_mle_boot)
+theta_mom_boot_mean <- mean(theta_mom_boot)
+
+# display results
+cat("Bootstrap estimates of θ:\n")
+cat("------------------------\n")
+cat("MLE estimate: ", round(theta_mle_boot_mean, 4), "\n")
+cat("MOM estimate: ", round(theta_mom_boot_mean, 4), "\n")
+
+
+```
+
+
+
+
+### Comparing  the performance of the MLE and MOM estimators
+
+
+
+```{r}
+set.seed(123) # for reproducibility
+n <- 500 # sample size
+theta <- 0.45 # probability parameter
+B <- 1000 # number of bootstrap replications
+
+# original sample
+x <- rbinom(n, 1, theta)
+
+# function to compute MLE and MOM estimates
+theta_mle <- function(x) min(c(mean(x), 0.5))
+theta_mom <- function(x) mean(x)
+
+# bootstrap estimates using MLE and MOM
+theta_mle_boot <- replicate(B, theta_mle(sample(x, n, replace = TRUE)))
+theta_mom_boot <- replicate(B, theta_mom(sample(x, n, replace = TRUE)))
+
+# bias and standard error of MLE and MOM estimates
+bias_mle <- mean(theta_mle_boot) - theta
+bias_mom <- mean(theta_mom_boot) - theta
+se_mle <- sd(theta_mle_boot)
+se_mom <- sd(theta_mom_boot)
+
+# display results
+cat("Comparison of MLE and MOM estimators:\n")
+cat("------------------------------------\n")
+cat("Estimator   Bias   Standard Error\n")
+cat("------------------------------------\n")
+cat(paste0("MLE        ", round(bias_mle, 4), "     ", round(se_mle, 4), "\n"))
+cat(paste0("MOM        ", round(bias_mom, 4), "    ", round(se_mom, 4), "\n"))
+
+
+
+```
+
+### Bootstrap percentile intervals of the ˆθ and ˜θ using your bootstrap samples
+
+```{r}
+
+set.seed(123) # for reproducibility
+n <- 500 # sample size
+theta <- 0.45 # probability parameter
+B <- 1000 # number of bootstrap replications
+alpha <- 0.05 # significance level
+
+# original sample
+x <- rbinom(n, 1, theta)
+
+# function to compute MLE and MOM estimates
+theta_mle <- function(x) min(c(mean(x), 0.5))
+theta_mom <- function(x) mean(x)
+
+# bootstrap estimates using MLE and MOM
+theta_mle_boot <- replicate(B, theta_mle(sample(x, n, replace = TRUE)))
+theta_mom_boot <- replicate(B, theta_mom(sample(x, n, replace = TRUE)))
+
+# bootstrap percentile intervals for MLE and MOM
+theta_mle_ci <- quantile(theta_mle_boot, c(alpha/2, 1-alpha/2))
+theta_mom_ci <- quantile(theta_mom_boot, c(alpha/2, 1-alpha/2))
+
+# display results
+cat("Bootstrap percentile intervals:\n")
+cat("------------------------------------\n")
+cat("Estimator   Lower bound   Upper bound\n")
+cat("------------------------------------\n")
+cat(paste0("MLE        ", round(theta_mle_ci[1], 4), "        ", round(theta_mle_ci[2], 4), "\n"))
+cat(paste0("MOM        ", round(theta_mom_ci[1], 4), "        ", round(theta_mom_ci[2], 4), "\n"))
+
+
+
+```
+
+
+
+### The remiss.csv data set contains the remission times for 42 leukemia patients in weeks. Someof the patients were treated with the drug called 6-mercaptopurine (group = 0), and the rest were part of the control group (group = 1).
+
+### Box plot for the remission times for two treatment and control group
+
+```{r}
+
+remiss <- read.csv(file.choose())
+```
+
+
+```{r}
+names(remiss)
+
+```
+
+
+
+```{r}
+
+
+# Create a box plot for the remission times of the two groups
+boxplot(time ~ group, data = remiss, xlab = "Group", ylab = "Remission Time (weeks)", main = "Remission Times for Leukemia Patients")
+
+# Add labels to the box plot
+legend("topright", legend = c("Control (Group 1)", "Treatment (Group 0)"), fill = c("white", "gray"), bty = "n")
+
+
+
+```
+
+
+
+# Normal probability plot 
+
+```{r}
+
+# Create a normal probability plot for the remission times of the control group (Group 1)
+qqnorm(remiss$time[remiss$group == 1], main = "Normal Probability Plot - Control Group")
+qqline(remiss$time[remiss$group == 1])
+
+# Create a normal probability plot for the remission times of the treatment group (Group 0)
+qqnorm(remiss$time[remiss$group == 0], main = "Normal Probability Plot - Treatment Group")
+qqline(remiss$time[remiss$group == 0])
+
+
+```
+
+### From the normal probability plots, we can see that the distribution of remission times for both groups is approximately normal, as the data points roughly follow a straight line. However, there are a few outliers in each group that deviate from the line, which may suggest some departures from normality. We could perform formal tests for normality, such as the Shapiro-Wilk test, to confirm this observation.
+
+
+### To test for the equality of means between the two groups, we can use a two-sample t-test. The null hypothesis and alternative hypothesis are as follows:
+
+### Null hypothesis: The mean remission time for the treatment group is equal to the mean remission time for the control group. In mathematical notation: H0: μ0 = μ1, where μ0 is the population mean remission time for the treatment group and μ1 is the population mean remission time for the control group.
+
+### Alternative hypothesis: The mean remission time for the treatment group is different from the mean remission time for the control group. In mathematical notation: Ha: μ0 ≠ μ1.
+
+# The above hypothesis test using Monte Carlo simulation to get the critical values
+
+```{r}
+
+
+
+
+
+# Calculate the observed test statistic
+t.obs <- t.test(time ~ group, data = remiss, var.equal = TRUE)$statistic
+
+# Combine the two samples into a single dataset
+remiss_combined <- data.frame(Group = rep(c(0, 1), c(21, 21)), time = c(remiss$time[remiss$group == 0], remiss$time[remiss$group == 1]))
+
+# Set the number of Monte Carlo simulations
+n.sim <- 10000
+
+# Initialize the vector to store the simulated test statistics
+t.sim <- numeric(n.sim)
+
+# Perform the Monte Carlo simulations
+for (i in 1:n.sim) {
+  # Shuffle the group labels randomly
+  remiss_shuffled <- remiss_combined[sample(nrow(remiss_combined)), ]
+  
+  # Calculate the test statistic for the shuffled dataset
+  t.sim[i] <- t.test(time ~ Group, data = remiss_shuffled, var.equal = TRUE)$statistic
+}
+
+# Calculate the critical values
+cv.upper <- quantile(t.sim, 0.975)
+cv.lower <- quantile(t.sim, 0.025)
+
+# Plot the simulated distribution of the test statistic
+hist(t.sim, main = "Simulated Distribution of the Test Statistic", xlab = "t", ylab = "Frequency", col = "lightblue")
+abline(v = cv.upper, lty = 2)
+abline(v = cv.lower, lty = 2)
+abline(v = t.obs, lty = 1, col = "red")
+
+# Calculate the p-value
+pval <- mean(abs(t.sim) >= abs(t.obs))
+
+# Print the results
+cat("Observed test statistic: ", t.obs, "\n")
+cat("Upper critical value: ", cv.upper, "\n")
+cat("Lower critical value: ", cv.lower, "\n")
+cat("Estimated p-value: ", pval, "\n")
+
+
+```

@@ -1,0 +1,139 @@
+---
+title: 'Australia weather analysis'
+author: "Mohd Javed"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,cache = TRUE,warning = FALSE,message = FALSE,dpi = 180,fig.width = 8,fig.height = 5)
+```
+
+
+
+```{r}
+library(readr)
+weatherAUS <- read_csv("weatherAUS.csv")
+skimr::skim(weatherAUS)
+#weatherAUS<-na.omit(weatherAUS)
+
+```
+
+
+```{r}
+head(weatherAUS$Evaporation)
+```
+
+
+
+```{r}
+library(caret)
+library(dplyr)
+library(magrittr)
+library(MASS)
+
+
+weatherAUS<-weatherAUS%>%
+  mutate(rainTom=ifelse(RainTomorrow=="Yes",1,0))
+```
+
+
+```{r}
+mod_d<-glm(rainTom~.,data = weatherAUS)
+summary(mod_d)
+mod_d1<-stepAIC(mod_d)
+
+
+mod_q<-qda(rainTom~.,data = weatherAUS)
+mod_q
+```
+
+
+```{r}
+#stargazer::stargazer(mod_f,type = "text")
+library(caret)
+sample_def <- createDataPartition(weatherAUS$rainTom, p = 0.8, list = FALSE)
+ 
+training_dataset  <- weatherAUS[sample_def, ]
+
+validation_dataset <- weatherAUS[-sample_def, ]
+mod_f<-glm(rainTom ~ Date + Location + MinTemp + MaxTemp + Rainfall + Evaporation +  Sunshine + WindGustDir + WindGustSpeed + WindDir9am + WindDir3pm +  WindSpeed9am + WindSpeed3pm + Humidity9am + Humidity3pm + 
+    Pressure9am + Pressure3pm + Cloud9am + Cloud3pm + Temp9am + 
+    Temp3pm + RainToday,data = training_dataset)
+#summary(mod_f)
+```
+
+
+### Baseline model
+
+
+
+```{r}
+hist(weatherAUS$MaxTemp)
+predictions_q<-predict(mod_f,validation_dataset)
+
+prediction_bin<-ifelse(predictions_q>=0.5,1,0)
+table(prediction_bin,validation_dataset$rainTom)
+mean(prediction_bin==validation_dataset$rainTom)
+
+```
+
+
+
+
+
+```{r}
+hist(weatherAUS$MinTemp)
+```
+
+```{r}
+weatherAUS%>%
+  count(Location)
+```
+
+
+```{r}
+ggplot(weatherAUS, aes(MaxTemp,Rainfall)) +
+  geom_point(size=1,aes(color = RainTomorrow))+
+   labs (title = "DD ", x = "MT", y = "R")+
+  theme_classic()
+
+ggplot(data=weatherAUS,aes(MaxTemp,Rainfall))+geom_point()
+```
+
+
+
+
+```{r}
+library(randomForest)
+
+rf <- randomForest(
+  rainTom ~ Date + Location + MinTemp + MaxTemp + Rainfall + Evaporation +  Sunshine + WindGustDir + WindGustSpeed + WindDir9am + WindDir3pm +  WindSpeed9am + WindSpeed3pm + Humidity9am + Humidity3pm + 
+    Pressure9am + Pressure3pm + Cloud9am + Cloud3pm + Temp9am + 
+    Temp3pm + RainToday,
+  data=training_dataset)
+## model Summary
+
+rf
+```
+
+
+```{r}
+library(DMwR2)
+nrow(weatherAUS)
+require(dplyr)
+impute_median <- function(x){
+  ind_na <- is.na(x)
+  x[ind_na] <- median(x[!ind_na])
+  as.numeric(x)
+}
+library(magrittr)
+library(dplyr)
+weatherAUS %>% 
+  mutate_at(vars(Evaporation, Sunshine,Rainfall,MaxTemp,MinTemp,Cloud9am),impute_median)
+weatherAUS_df<-knnImputation(weatherAUS,k=nrow(weatherAUS))
+```
+
+
+

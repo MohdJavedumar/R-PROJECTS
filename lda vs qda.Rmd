@@ -1,0 +1,328 @@
+---
+title: 'LDA VS QDA'
+author: 'Mohd Javed'
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+# Part 1
+
+
+```{r}
+library(Ecdat)
+library(MASS)
+```
+
+### Linear Discreminant Analysis
+
+
+```{r}
+
+# training lda model
+model_1<-lda(choice~.,data=Mode)
+
+model_1
+```
+
+### Quadratic discriminant analysis
+
+```{r}
+set.seed(123)
+# training qda model
+model_2<-qda(choice~.,data=Mode)
+model_2
+
+
+
+```
+
+### Confusion Matrix for Both model
+
+```{r}
+
+
+#Confusion matrix for lda model
+
+table(predict(model_1,type="class")$class,Mode$choice)
+
+#Confusion matrix for qda model
+
+table(predict(model_2,type="class")$class,Mode$choice)
+
+
+
+```
+
+
+## Sample error rate
+
+```{r}
+# Incorrectly Classified Instances for lda model
+(1-mean(predict(model_1,type="class")$class==Mode$choice))*100
+
+# Incorrectly Classified Instances for qda model
+
+(1-mean(predict(model_2,type="class")$class==Mode$choice))*100
+
+```
+### Quadratic Discriminent Anlysis performing better than Linear Discriminent Anlysis beacuse it has lower sample classification error rate.
+
+# Part 2
+
+```{r}
+library(ISLR2)
+
+```
+
+```{r}
+#Creating copy of dataframe
+Default_LM<-Default
+#Converting factor to numeric
+Default_LM$default <- ifelse (Default_LM$default == 'Yes', 1, 0)
+#training the linear probability model
+mod_lm<-lm(default~.,data=Default_LM)
+summary(mod_lm)
+
+Default_LM$Predict_lm <- ifelse(mod_lm$fitted.values > 0.5,1,0)
+table(Default_LM$Predict_lm,Default_LM$default)
+
+mean(Default_LM$Predict_lm==Default_LM$default)
+
+```
+
+
+```{r}
+Default_LM$Predict_lm=NULL
+mod_glm<-glm(default~.,data=Default_LM)
+summary(mod_glm)
+
+predictions_glm<-predict(mod_glm,Default_LM)
+Default_LM$Predict_glm <- ifelse(predictions_glm > 0.5,1,0)
+table(Default_LM$Predict_glm,Default_LM$default)
+mean(Default_LM$Predict_glm==Default_LM$default)
+
+```
+## Both Models has the same accuracy/sample error rate. Both models are performing same toward classification of response variable 'default'.
+
+
+
+
+
+
+
+
+
+```{r}
+library(boot)
+summary(Strike)
+
+bootFunc <- function(data, i){
+df <- data[i, ]
+(1/nrow(df))*log(df$duration)
+}
+
+b <- boot(Strike, bootFunc, R = 62)
+ 
+print(b)
+ boot.ci(b, index = 1)
+
+
+```
+### From the output we can see that the 95% bootstrapped confidence interval for the true R-squared values is (.0000, .0599).
+
+
+```{r}
+### Partitioning the dataframe
+set.seed(123)
+
+library(caret)
+sample_def <- createDataPartition(Default$default, p = 0.8, list = FALSE)
+ 
+training_dataset  <- Default[sample_def, ]
+
+validation_dataset <- Default[-sample_def, ]
+
+```
+
+# Default Dataset
+
+### Linear Discreminant Analysis
+
+
+```{r}
+mod_def_lda<-lda(default~.,data=training_dataset)
+mod_def_lda
+```
+
+### Quadratic discriminant analysis
+
+```{r}
+mod_def_qda<-qda(default~.,data=training_dataset)
+mod_def_qda
+```
+
+### Confusion Matrix for Both model
+
+```{r}
+predictions_q<-predict(mod_def_qda,validation_dataset)
+table(predictions_q$class,validation_dataset$default)
+predictions_l<-predict(mod_def_lda,validation_dataset)
+table(predictions_l$class,validation_dataset$default)
+
+
+```
+### Sample error rate
+
+```{r}
+1-mean(predictions_q$class==validation_dataset$default)
+1-mean(predictions_l$class==validation_dataset$default)
+```
+
+### Quadratic Discriminent Anlysis performing better than Linear Discriminent Anlysis beacuse it has lower sample classification error rate.
+
+
+
+
+# Participation Dataset
+
+### Linear Discreminant Analysis
+
+
+
+```{r}
+### Partitioning the dataframe
+set.seed(123)
+
+sample_def <- createDataPartition(Participation$lfp, p = 0.8, list = FALSE)
+ 
+training_dataset  <- Participation[sample_def, ]
+
+validation_dataset <- Participation[-sample_def, ]
+
+mod_par_lda<-lda(lfp~.,data=training_dataset)
+mod_par_lda
+```
+
+### Quadratic discriminant analysis
+
+```{r}
+mod_par_qda<-qda(lfp~.,data=training_dataset)
+mod_par_qda
+```
+
+### Confusion Matrix for Both model
+
+```{r}
+predictions_q<-predict(mod_par_qda,validation_dataset)
+table(predictions_q$class,validation_dataset$lfp)
+predictions_l<-predict(mod_par_lda,validation_dataset)
+table(predictions_l$class,validation_dataset$lfp)
+```
+### Sample error rate
+
+```{r}
+1-mean(predictions_q$class==validation_dataset$lfp)
+1-mean(predictions_l$class==validation_dataset$lfp)
+```
+
+### Quadratic Discriminent Anlysis performing better than Linear Discriminent Anlysis beacuse it has lower sample classification error rate
+
+
+# Train Dataset
+
+### Linear Discreminant Analysis
+
+
+```{r}
+### Partitioning the dataframe
+set.seed(123)
+
+sample_def <- createDataPartition(Train$choice, p = 0.8, list = FALSE)
+ 
+training_dataset  <- Train[sample_def, ]
+
+validation_dataset <- Train[-sample_def, ]
+# training model
+mod_trn_lda<-lda(choice~.,data=training_dataset)
+mod_trn_lda
+```
+
+### Quadratic discriminant analysis
+
+```{r}
+# training model
+mod_trn_qda<-qda(choice~.,data=training_dataset)
+mod_trn_qda
+```
+
+### Confusion Matrix for Both model
+
+```{r}
+# conf.matrix for QDA
+predictions_q<-predict(mod_trn_qda,validation_dataset)
+table(predictions_q$class,validation_dataset$choice)
+# conf.matrix for LDA
+predictions_l<-predict(mod_trn_lda,validation_dataset)
+table(predictions_l$class,validation_dataset$choice)
+```
+### Sample error rate
+
+```{r}
+
+1-mean(predictions_q$class==validation_dataset$choice)
+1-mean(predictions_l$class==validation_dataset$choice)
+```
+### Quadratic Discriminent Anlysis performing better than Linear Discriminent Anlysis beacuse it has lower sample classification error rate.
+
+
+
+
+# Mroz Dataset
+
+### Linear Discreminant Analysis
+
+
+```{r}
+### Partitioning the dataframe
+set.seed(123)
+
+sample_def <- createDataPartition(Mroz$city, p = 0.8, list = FALSE)
+ 
+training_dataset  <- Mroz[sample_def, ]
+
+validation_dataset <- Mroz[-sample_def, ]
+mod_Mroz_lda<-lda(city~.,data=training_dataset)
+mod_Mroz_lda
+```
+
+### Quadratic discriminant analysis
+
+```{r}
+mod_Mroz_qda<-qda(city~.,data=training_dataset)
+mod_Mroz_qda
+```
+
+### Confusion Matrix for Both model
+
+```{r}
+# conf.matrix for QDA
+
+predictions_q<-predict(mod_Mroz_qda,validation_dataset)
+table(predictions_q$class,validation_dataset$city)
+# conf.matrix for LDA
+
+predictions_l<-predict(mod_Mroz_lda,validation_dataset)
+table(predictions_l$class,validation_dataset$city)
+```
+### Sample error rate
+
+```{r}
+1-mean(predictions_q$class==validation_dataset$city)
+1-mean(predictions_l$class==validation_dataset$city)
+```
+
+### Linear Discriminent Anlysis performing better than Quadratic Discriminent Anlysis beacuse it has lower sample classification error rate.
+
+

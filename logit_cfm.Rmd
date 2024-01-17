@@ -1,0 +1,323 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,cache = TRUE,warning = FALSE,message = FALSE,dpi = 180,fig.width = 8,fig.height = 5)
+```
+
+
+
+# Importing required packages and data
+
+
+
+```{r}
+library(magrittr)
+library(dplyr)
+library(readxl)
+library(margins)
+library(caret)
+
+cfmdefaultdata <- read_excel("cfmdefaultdata.xlsx")
+#View(cfmdefaultdata)
+
+```
+
+
+
+# Descriptive statistics
+
+
+
+```{r}
+skimr::skim(cfmdefaultdata)
+## creating new datframe
+cfmdefaultdata_df<-na.omit(cfmdefaultdata)
+# removing wave column from dataframe
+cfmdefaultdata_df$wave=NULL
+```
+
+## primary logistic model 
+
+
+
+```{r}
+
+
+logit<-glm(default~.,data = cfmdefaultdata_df,family="binomial")
+
+## using stepAIC 
+logit_aic<-stepAIC(logit)
+```
+
+
+## Probit logistic model
+
+
+
+```{r}
+## Probit logistic model
+
+probit <- glm(default ~ children + age + num_misspay + ltv, family = binomial(link = "probit"), data = cfmdefaultdata_df)
+
+## Model output summary
+
+stargazer::stargazer(logit_aic,probit,type = "text")
+
+```
+
+### All variables are statistically significant to predict our response variable default | p value < 0.05.
+
+
+
+## Marginal Effect Estimates
+
+
+```{r}
+# marginal effect estimates of logit model
+
+logit_me<-margins_summary(logit)
+logit_me[1:3]
+```
+
+
+
+
+
+```{r}
+# marginal effect of probit model
+
+probit_me<-margins_summary(probit)
+probit_me[1:3]
+
+
+
+
+```
+
+
+# Waves Frequency distribution
+
+
+
+```{r}
+# 
+cfmdefaultdata%>%
+  count(wave,sort = TRUE)
+```
+
+
+
+
+
+```{r}
+# wave from 1 to 4
+
+cfm_wave_1_4<-cfmdefaultdata%>%
+  filter(wave==c(1,2,3,4))
+# removing wave column from dataframe
+
+cfm_wave_1_4$wave=NULL
+# logit model for wave 1-4
+logit1_4<-glm(default ~ children + age + num_misspay + ltv,data = cfm_wave_1_4,family="binomial")
+```
+
+
+
+
+
+
+```{r}
+cfm_wave_2_5<-cfmdefaultdata%>%
+  filter(wave==c(2,3,4,5))
+# removing wave column from dataframe
+
+cfm_wave_2_5$wave=NULL
+# logit model for wave 2-5
+logit2_5<-glm(default ~ children + age + num_misspay + ltv,data = cfm_wave_2_5,family="binomial")
+```
+
+
+
+
+
+```{r}
+cfm_wave_3_1<-cfmdefaultdata%>%
+  filter(wave==c(3,4,5,1))
+# removing wave column from dataframe
+
+cfm_wave_3_1$wave=NULL
+# logit model for wave 3-1
+logit3_1<-glm(default ~ children + age + num_misspay + ltv,data = cfm_wave_3_1,family="binomial")
+```
+
+
+
+
+
+```{r}
+cfm_wave_4_2<-cfmdefaultdata%>%
+  filter(wave==c(4,5,1,2))
+# removing wave column from dataframe
+
+cfm_wave_4_2$wave=NULL
+# logit model for wave 4-2
+
+logit4_2<-glm(default ~ children + age + num_misspay + ltv,data = cfm_wave_4_2,family="binomial")
+```
+
+
+
+
+
+```{r}
+cfm_wave_5_3<-cfmdefaultdata%>%
+  filter(wave==c(5,1,2,3))
+# removing wave column from dataframe
+
+cfm_wave_5_3$wave=NULL
+# logit model for wave 5-3
+logit5_3<-glm(default ~ children + age + num_misspay + ltv,data = cfm_wave_5_3,family="binomial")
+```
+
+
+
+
+### Summarizing all model output 
+
+
+
+
+```{r}
+stargazer::stargazer(logit1_4,logit2_5,logit3_1,logit4_2,logit5_3,type = "text")
+```
+
+
+## logit model with wave (4,5,1,2) have the strongest model fit by having low AIC value.
+
+
+
+
+## Marginal effect estimates from different waves data
+
+
+
+
+```{r}
+# Marginal effect estimates
+logit1_4_me<-margins_summary(logit1_4)
+logit1_4_me[1:3]
+```
+
+
+```{r}
+
+logit2_5_me<-margins_summary(logit2_5)
+logit2_5_me[1:3]
+```
+
+
+```{r}
+logit3_1_me<-margins_summary(logit3_1)
+logit3_1_me[1:3]
+```
+
+
+```{r}
+logit4_2_me<-margins_summary(logit4_2)
+logit4_2_me[1:3]
+```
+
+
+```{r}
+logit5_3_me<-margins_summary(logit5_3)
+logit5_3_me[1:3]
+
+
+
+
+```
+
+
+
+
+# Creating data partition
+
+
+
+
+```{r}
+set.seed(1234)
+cfmdefaultdata_df$default<-as.factor(cfmdefaultdata_df$default)
+training.individuals <- cfmdefaultdata_df$default %>%
+			createDataPartition(p = 0.7, list = FALSE)
+train.data <- cfmdefaultdata_df[training.individuals, ]
+test.data <- cfmdefaultdata_df[-training.individuals, ]
+```
+
+
+
+
+
+# logit model on training data
+
+
+
+
+```{r}
+logit_f<-glm(default ~ children + age + num_misspay + ltv,data = train.data,family="binomial")
+# model output
+
+stargazer::stargazer(logit_f,type = "text")
+
+
+```
+
+
+
+
+
+
+```{r}
+
+# predicting with trained model on test data
+predictions <- logit_f %>% predict(test.data)
+
+predict_bin<-ifelse(predictions<=.5,0,1)
+predict_bin<-as.numeric(predict_bin)
+
+#Confusion matrix
+
+table(predict_bin,test.data$default)
+
+
+```
+
+
+
+
+
+
+```{r}
+library(pROC)
+roc_score = roc(test.data$default, predict_bin)  
+
+# AUC score
+roc_score
+
+
+plot(roc_score, main="ROC curve -- Logistic Regression ")
+
+```
+
+
+### The Area under curve (AUC value) is 0.499 that is less than 0.5, which implies logit model is as good as random model.
+
+

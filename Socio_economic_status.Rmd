@@ -1,0 +1,137 @@
+---
+title: 'Socio economic Anaysis'
+author: 'Mohd Javed'
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,cache = TRUE,warning = FALSE,message = FALSE,dpi = 175,fig.width = 7.5,fig.height = 6)
+```
+
+
+
+### Importing required packages and Data 
+
+
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+
+homework <- read_csv("homework.csv")
+View(homework)
+```
+
+
+
+
+## First look of the data
+
+
+```{r}
+skimr::skim(homework)
+```
+
+
+
+### Visualizing the Maths and English scores distribution by Socio-economic group
+
+
+
+```{r}
+ggplot(homework, aes(engach, fill=factor(ses))) + 
+  geom_density(alpha=.5)
+
+ggplot(homework, aes(mathsach, fill=factor(ses))) + 
+  geom_density(alpha=.5)
+
+```
+
+
+
+## Descriptive measures for English Score by Socio-economic status
+
+
+
+```{r}
+group_by(homework, ses) %>%
+  summarise(
+    count = n(),
+    mean = mean(engach, na.rm = TRUE),
+    sd = sd(engach, na.rm = TRUE),
+    median = median(engach, na.rm = TRUE),
+    IQR = IQR(engach, na.rm = TRUE)
+  )
+
+ggplot(homework, aes(x = ses, y = engach, col = factor(ses))) + geom_boxplot(outlier.shape = NA) + geom_jitter(width = 0.2) + theme(legend.position="right")
+
+```
+
+
+
+## Descriptive measures for Math Score by Socio-economic status
+
+
+```{r}
+group_by(homework, ses) %>%
+  summarise(
+    count = n(),
+    mean = mean(mathsach, na.rm = TRUE),
+    sd = sd(mathsach, na.rm = TRUE),
+    median = median(mathsach, na.rm = TRUE),
+    IQR = IQR(mathsach, na.rm = TRUE)
+  )
+
+ggplot(homework, aes(x = ses, y = mathsach, col = factor(ses))) + geom_boxplot(outlier.shape = NA) + geom_jitter(width = 0.2) + theme(legend.position="right")
+```
+
+### As we have three level categorical variable (Socio-economic status) as independent variable and math and english score as dependent variable. Hence we will use one way anova to test the significant differneces among the groups.
+
+# Assumptions of ANOVA test
+
+## Assumption 1: Normality
+
+
+```{r}
+
+shapiro.test(homework$engach)
+
+shapiro.test(homework$mathsach)
+
+```
+
+
+### Assumption 2: Equal Variance
+
+```{r}
+bartlett.test(engach~ses , data=homework)
+
+
+```
+
+### Assumption 3: Independence of sample
+
+#### as we know our sample observations are independent to each other.
+
+
+## ANOVA Test 
+
+```{r}
+summary(aov(engach~factor(ses),data = homework))
+```
+
+
+
+
+## Kruskal wallis test for non-parametric group
+
+
+
+```{r}
+kruskal.test(mathsach ~ ses, data = homework)
+
+```
+

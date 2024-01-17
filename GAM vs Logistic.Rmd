@@ -1,0 +1,220 @@
+---
+title: "Logistic Vs General additive model"
+author: "Mohd Javed"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,cache = TRUE,warning = FALSE,message = FALSE,dpi = 180,fig.width = 8,fig.height = 5)
+```
+
+
+
+
+```{r}
+library(readr)
+library(caret)
+library(tidyverse)
+n90_pol <- read_csv("n90_pol.csv")
+View(n90_pol)  
+```
+
+
+
+
+## Bootstrap confidence interal
+
+
+```{r}
+library(boot)
+set.seed(1)
+
+b3 <- boot(n90_pol, 
+  statistic = function(data, i) {
+    cor(data[i, "amygdala"], data[i, "acc"], method='pearson')
+  },
+  R = 1000
+)
+b3
+
+```
+```{r}
+set.seed(1)
+
+b4 <- boot(n90_pol, 
+  statistic = function(data, i) {
+    cor(data[i, "amygdala"], data[i, "orientation"], method='pearson')
+  },
+  R = 1000
+)
+b4
+
+set.seed(1)
+
+b5 <- boot(n90_pol, 
+  statistic = function(data, i) {
+    cor(data[i, "acc"], data[i, "orientation"], method='pearson')
+  },
+  R = 1000
+)
+b5
+
+
+```
+
+
+
+### Linear Model
+
+
+
+
+```{r}
+
+mod<-lm(orientation~amygdala+acc,data=n90_pol)
+stargazer::stargazer(mod,type="text")
+```
+
+
+
+### Creating categorical variable
+
+```{r}
+library(dplyr)
+library(magrittr)
+n90_pol<-n90_pol%>%
+  mutate(orientation_cat=ifelse(orientation<=2,1,0))
+```
+
+
+### partitioning of dataset
+
+
+
+```{r}
+set.seed(1234)
+training.individuals <- n90_pol$orientation_cat %>%
+			createDataPartition(p = 0.6, list = FALSE)
+train.data <- n90_pol[training.individuals, ]
+test.data <- n90_pol[-training.individuals, ]
+```
+
+
+## Training logistic model with Leave One Out Cross Validation
+
+
+```{r}
+#specify that we want to use LOOCV
+train_control <- trainControl(method = "LOOCV")
+
+#train the model
+model <- train(orientation_cat~acc+amygdala,data=n90_pol, method = "glm", trControl = train_control)
+model
+
+
+
+# predicting with trained model on test data
+predictions <- model %>% predict(test.data)
+
+# 
+predict_bin<-ifelse(predictions<=.5,0,1)
+predict_bin<-as.numeric(predict_bin)
+# Model accuracy
+mean(predict_bin==test.data$orientation_cat)
+
+#Confusion matrix
+
+table(predict_bin,test.data$orientation_cat)
+
+
+```
+
+
+## Training logistic model with 5 fold Cross Validation
+
+
+
+```{r}
+train_control <- trainControl(method = "cv", number = 5)
+
+#train the model
+model21 <- train(orientation_cat~acc+amygdala,data=n90_pol, method = "glm", trControl = train_control)
+
+
+# predicting with trained model on test data
+predictions <- model21 %>% predict(test.data)
+
+# 
+predict_bin<-ifelse(predictions<=.5,0,1)
+predict_bin<-as.numeric(predict_bin)
+# Model accuracy
+mean(predict_bin==test.data$orientation_cat)
+
+#Confusion matrix
+
+table(predict_bin,test.data$orientation_cat)
+
+```
+
+
+##Training generalized additive model with Leave One Out Cross Validation
+
+
+```{r}
+
+#specify that we want to use LOOCV
+train_control <- trainControl(method = "LOOCV")
+
+#train the model
+model212 <- train(orientation_cat~acc+amygdala,data=n90_pol, method = "gam", trControl = train_control)
+model
+
+
+
+# predicting with trained model on test data
+predictions <- model212 %>% predict(test.data)
+
+# 
+predict_bin<-ifelse(predictions<=.5,0,1)
+predict_bin<-as.numeric(predict_bin)
+# Model accuracy
+mean(predict_bin==test.data$orientation_cat)
+
+#Confusion matrix
+
+table(predict_bin,test.data$orientation_cat)
+
+```
+
+## Training generalized additive model with 5 fold Cross Validation
+
+
+
+
+```{r}
+train_control <- trainControl(method = "cv", number = 5)
+
+#train the model
+model211 <- train(orientation_cat~acc+amygdala,data=n90_pol, method = "gam", trControl = train_control)
+
+
+# predicting with trained model on test data
+predictions <- model211 %>% predict(test.data)
+
+# 
+predict_bin<-ifelse(predictions<=.5,0,1)
+predict_bin<-as.numeric(predict_bin)
+# Model accuracy
+mean(predict_bin==test.data$orientation_cat)
+
+#Confusion matrix
+
+table(predict_bin,test.data$orientation_cat)
+```
+
+# Generalised aditive model has performed better than logistic model.
+## higher accuracy in GAM.
+
+
